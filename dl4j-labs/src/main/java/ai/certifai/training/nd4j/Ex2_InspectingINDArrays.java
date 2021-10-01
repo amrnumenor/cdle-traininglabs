@@ -62,6 +62,9 @@ public class Ex2_InspectingINDArrays {
         - Get number of dimension
         - Get the size of dimension 4
         */
-
+        INDArray exArray = Nd4j.randn(2, 5, 6, 3, 5);
+        System.out.println("Shape: " + Arrays.toString(exArray.shape()));
+        System.out.println("Dimension: " + exArray.rank());
+        System.out.println("Size of dimension 4: " + exArray.size(4));
     }
 }

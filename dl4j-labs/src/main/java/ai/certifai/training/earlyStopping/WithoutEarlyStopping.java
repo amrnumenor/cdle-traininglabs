@@ -50,6 +50,7 @@ import org.nd4j.linalg.learning.config.Nesterovs;
 import org.nd4j.linalg.lossfunctions.impl.LossMCXENT;
 
 import java.io.File;
+import java.io.Writer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -91,10 +92,10 @@ public class WithoutEarlyStopping {
 
         //Build Schema to prepare the data
         Schema sc = new Schema.Builder()
-                /**
-                 * [Code Here]
-                 *
-                 */
+                .addColumnsInteger("Pregnancies","Glucose","BloodPressure","SkinThickness","Insulin")
+                .addColumnsFloat("BMI","DiabetesPedigreeFunction")
+                .addColumnInteger("Age")
+                .addColumnCategorical("Class", Arrays.asList("0","1"))
                 .build();
 
 //=========================================================================
@@ -102,9 +103,7 @@ public class WithoutEarlyStopping {
 //=========================================================================
 
         TransformProcess tp = new TransformProcess.Builder(sc)
-                /**
-                [Code Here]
-                 */
+                .categoricalToInteger("Class")
                 .build();
 
         //Checking the schema
@@ -118,35 +117,34 @@ public class WithoutEarlyStopping {
             allData.add(rr.next());
         }
 
-        /**
-        List<List<Writable>> processData = LocalTransformExecutor.execute(allData,tp);
-         */
+        List<List<Writable>> processData = LocalTransformExecutor.execute(allData, tp);
+
 //========================================================================
         //  Step 3 : Create Iterator ,splitting trainData and testData
 //========================================================================
 
         //Create iterator from process data
-        //CollectionRecordReader collectionRR = new CollectionRecordReader(processData);
+        CollectionRecordReader collectionRR = new CollectionRecordReader(processData);
 
         //Input batch size , label index , and number of label
-//        DataSetIterator dataSetIterator = new RecordReaderDataSetIterator(collectionRR, processData.size(),8,numClass);
+        DataSetIterator dataSetIterator = new RecordReaderDataSetIterator(collectionRR, processData.size(), -1, numClass);
 
         //Create Iterator and shuffle the dat
-//        DataSet fullDataset = dataSetIterator.next();
-//        fullDataset.shuffle(seed);
+        DataSet fullData = dataSetIterator.next();
+        fullData.shuffle();
 
         //Input split ratio
-//        SplitTestAndTrain testAndTrain = fullDataset.splitTestAndTrain(splitRatio);
+        SplitTestAndTrain testAndTrain = fullData.splitTestAndTrain(splitRatio);
 
         //Get train and test dataset
-//        DataSet trainData = testAndTrain.getTrain();
-//        DataSet testData = testAndTrain.getTest();
+        DataSet trainData = testAndTrain.getTrain();
+        DataSet testData = testAndTrain.getTest();
 
         //printout size
-//        System.out.println("Training vector : ");
-//        System.out.println(Arrays.toString(trainData.getFeatures().shape()));
-//        System.out.println("Test vector : ");
-//        System.out.println(Arrays.toString(testData.getFeatures().shape()));
+        System.out.println("Training vector : ");
+        System.out.println(Arrays.toString(trainData.getFeatures().shape()));
+        System.out.println("Test vector : ");
+        System.out.println(Arrays.toString(testData.getFeatures().shape()));
 
 //========================================================================
         //  Step 4 : DataNormalization
@@ -154,15 +152,13 @@ public class WithoutEarlyStopping {
 
         //Data normalization
         DataNormalization normalizer = new NormalizerMinMaxScaler();
-        /**
-        normalizer.fit([Code Here]);
-        normalizer.transform([Code Here]);
-        normalizer.transform([Code Here]);
-         */
+        normalizer.fit(trainData);
+        normalizer.transform(trainData);
+        normalizer.transform(testData);
 
         //Create Dataset Iterator
-//        DataSetIterator trainIterator = new ViewIterator(trainData, trainData.numExamples());
-//        DataSetIterator testIterator = new ViewIterator(testData, testData.numExamples());
+        DataSetIterator trainIter = new ViewIterator(trainData, trainData.numExamples());
+        DataSetIterator testIter = new ViewIterator(testData, testData.numExamples());
 
 
 //========================================================================
@@ -187,7 +183,7 @@ public class WithoutEarlyStopping {
 
 
         //Set model listeners
-        model.setListeners(new StatsListener(storage, 1));
+        model.setListeners(new StatsListener(storage, 10));
 
 //========================================================================
         //  Step 7 : Training
@@ -195,24 +191,25 @@ public class WithoutEarlyStopping {
 
         //Training
         Evaluation eval;
-        /**
-         * [Code Here]
-         */
+        for(int i = 0; i < epoch; ++i) {
+            model.fit(trainData);
+            eval = model.evaluate(testIter);
+            System.out.println("EPOCH: " + i + " Accuracy: " + eval.accuracy());
+        }
 
 //========================================================================
         //  Step 8 : Evaluation
 //========================================================================
 
         //Confusion matrix
-        /**
-        Evaluation evalTrain = model.evaluate([Code Here]);
-        Evaluation evalTest = model.evaluate([Code Here]);
+        Evaluation evalTrain = model.evaluate(trainIter);
+        Evaluation evalTest = model.evaluate(testIter);
+
         System.out.print("Train Data");
         System.out.println(evalTrain.stats());
 
         System.out.print("Test Data");
         System.out.print(evalTest.stats());
-         */
 
 
 

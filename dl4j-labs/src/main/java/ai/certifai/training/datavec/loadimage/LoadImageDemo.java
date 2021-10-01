@@ -18,9 +18,18 @@
 package ai.certifai.training.datavec.loadimage;
 
 import ai.certifai.Helper;
+import jdk.internal.util.xml.impl.Input;
 import org.apache.commons.io.FileUtils;
+import org.datavec.api.io.filters.RandomPathFilter;
 import org.datavec.api.io.labels.ParentPathLabelGenerator;
+import org.datavec.api.split.FileSplit;
+import org.datavec.api.split.InputSplit;
 import org.datavec.image.loader.BaseImageLoader;
+import org.datavec.image.recordreader.ImageRecordReader;
+import org.datavec.image.transform.*;
+import org.deeplearning4j.datasets.datavec.RecordReaderDataSetIterator;
+import org.nd4j.common.primitives.Pair;
+import org.nd4j.linalg.dataset.api.iterator.DataSetIterator;
 import org.nd4j.linalg.dataset.api.preprocessor.DataNormalization;
 import org.nd4j.linalg.dataset.api.preprocessor.ImagePreProcessingScaler;
 import org.nd4j.common.util.ArchiveUtils;
@@ -30,6 +39,8 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.nio.file.Paths;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Random;
 
 public class LoadImageDemo {
@@ -69,39 +80,47 @@ public class LoadImageDemo {
          */
 
         //create FileSplit point to images parent folder
-        /*
-        YOUR CODE HERE
-         */
+        FileSplit filesplit = new FileSplit(parentDir);
 
         //create random path filter using RandomPathFilter
-        /*
-        YOUR CODE HERE
-         */
+        RandomPathFilter pathFilter = new RandomPathFilter(randNumGen, allowedExtensions);
 
         //split images into training and test dataset using FileSplit.sample
-        /*
-        YOUR CODE HERE
-         */
+        InputSplit[] filesInDirSplit = filesplit.sample(pathFilter, 80, 20);
+        InputSplit trainData = filesInDirSplit[0];
+        InputSplit testData = filesInDirSplit[1];
 
         //read image using ImageRecordReader
-        /*
-        YOUR CODE HERE
-         */
+        ImageRecordReader trainRR = new ImageRecordReader(height, width, channels, labelMaker);
+        ImageRecordReader testRR = new ImageRecordReader(height, width, channels, labelMaker);
 
         //define and initialize image transformation
-        /*
-        YOUR CODE HERE
-         */
+        FlipImageTransform horizontalFlip = new FlipImageTransform(1);
+        ImageTransform cropImage = new CropImageTransform(25);
+        ImageTransform rotateImage = new RotateImageTransform(randNumGen, 1);
+
+        List<Pair<ImageTransform, Double>> pipeline = Arrays.asList(
+                new Pair<>(horizontalFlip, 0.5),
+                new Pair<>(cropImage, 0.3),
+                new Pair<>(rotateImage, 0.5)
+        );
+
+        boolean shuffle = false;
+        ImageTransform transform = new PipelineImageTransform(pipeline, shuffle);
+
+        trainRR.initialize(trainData, transform);
+        testRR.initialize(testData);
 
         //create dataset iterator
-        /*
-        YOUR CODE HERE
-         */
+        DataSetIterator trainIter = new RecordReaderDataSetIterator(trainRR, batchSize, 1, numLabels);
+        DataSetIterator testIter = new RecordReaderDataSetIterator(testRR, batchSize, 1, numLabels);
 
         //set image data normalization
-        /*
-        YOUR CODE HERE
-         */
+        DataNormalization scaler = new ImagePreProcessingScaler(0, 1);
+        trainIter.setPreProcessor(scaler);
+        testIter.setPreProcessor(scaler);
+
+        System.out.println(trainIter.next());
 
     }
 

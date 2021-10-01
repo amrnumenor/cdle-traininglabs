@@ -187,24 +187,19 @@ public class EarlyStopping {
         //evaluateEveryNEpochs - the frequency of model evaluation
 
         EarlyStoppingConfiguration esConfig = new EarlyStoppingConfiguration.Builder()
+                .epochTerminationConditions(new MaxEpochsTerminationCondition(epoch))
+                .scoreCalculator(new DataSetLossCalculator(testIterator, true))
+                .evaluateEveryNEpochs(1)
                 .build();
 
         // Input Early Stopping Configuration , Network Configuration , trainIterator
-        /**
-         *
-         * [Code Here]
-         *
-         */
+        EarlyStoppingTrainer trainer = new EarlyStoppingTrainer(esConfig, modelConfig, trainIterator);
 
 //========================================================================
         //  Step 7 : Training
 //========================================================================
         // Perform model training with Early Stopping configuration
-        /**
-         * EarlyStoppingResult result = [Code Here]
-         *
-         *
-         */
+        EarlyStoppingResult result = trainer.fit();
 
 
         // Instantiate UI server to visualize training process
@@ -225,13 +220,11 @@ public class EarlyStopping {
         System.out.println("Retraining model ........ ");
 
         Evaluation eval;
-        /**
-        for(int i = 0; i < [Code Here]; i++) {
+        for(int i = 0; i < result.getBestModelEpoch(); i++) {
             model.fit(trainData);
             eval = model.evaluate(testIterator);
             System.out.println("EPOCH: " + i + " Accuracy: " + eval.accuracy());
         }
-         */
 
 
 //========================================================================
@@ -248,11 +241,11 @@ public class EarlyStopping {
         System.out.println(evalTest.stats());
 
         //Early Stopping Details
-
-        /**
-         System.out.println("Termination reason: " + result.getTerminationReason());
-        [code here]
-         */
+        System.out.println("Termination reason: " + result.getTerminationReason());
+        System.out.println("Termination details: " + result.getTerminationDetails());
+        System.out.println("Total epochs: " + result.getTotalEpochs());
+        System.out.println("Best epoch number: " + result.getBestModelEpoch());
+        System.out.println("Score at best epoch: " + result.getBestModelScore());
 
     }
 

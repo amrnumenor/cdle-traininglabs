@@ -17,15 +17,45 @@
 
 package ai.certifai.training.regression.medicalcostprediction;
 
+import ai.certifai.solution.regression.PlotUtil;
+import org.datavec.api.records.reader.RecordReader;
+import org.datavec.api.records.reader.impl.collection.CollectionRecordReader;
+import org.datavec.api.records.reader.impl.csv.CSVRecordReader;
+import org.datavec.api.split.FileSplit;
+import org.datavec.api.transform.TransformProcess;
+import org.datavec.api.transform.schema.Schema;
+import org.datavec.api.writable.Writable;
+import org.datavec.local.transforms.LocalTransformExecutor;
 import org.deeplearning4j.core.storage.StatsStorage;
+import org.deeplearning4j.datasets.datavec.RecordReaderDataSetIterator;
+import org.deeplearning4j.nn.conf.MultiLayerConfiguration;
+import org.deeplearning4j.nn.conf.NeuralNetConfiguration;
+import org.deeplearning4j.nn.conf.layers.DenseLayer;
+import org.deeplearning4j.nn.conf.layers.OutputLayer;
+import org.deeplearning4j.nn.multilayer.MultiLayerNetwork;
+import org.deeplearning4j.nn.weights.WeightInit;
+import org.deeplearning4j.optimize.listeners.ScoreIterationListener;
 import org.deeplearning4j.ui.api.UIServer;
+import org.deeplearning4j.ui.model.stats.StatsListener;
 import org.deeplearning4j.ui.model.storage.InMemoryStatsStorage;
 import org.nd4j.common.io.ClassPathResource;
+import org.nd4j.evaluation.regression.RegressionEvaluation;
+import org.nd4j.linalg.activations.Activation;
+import org.nd4j.linalg.api.ndarray.INDArray;
+import org.nd4j.linalg.dataset.DataSet;
+import org.nd4j.linalg.dataset.SplitTestAndTrain;
+import org.nd4j.linalg.dataset.ViewIterator;
+import org.nd4j.linalg.dataset.api.iterator.DataSetIterator;
+import org.nd4j.linalg.learning.config.Adam;
+import org.nd4j.linalg.lossfunctions.LossFunctions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 public class MedicalCostPrediction {
 
@@ -76,58 +106,55 @@ public class MedicalCostPrediction {
 
         //  Preparing the data
         File file = new ClassPathResource("medicalCost/insurance.csv").getFile();
-            /*
-             *
-             * ENTER YOUR CODE HERE
-             *
-             * */
+        RecordReader CSVReader = new CSVRecordReader(1);
+        CSVReader.initialize(new FileSplit(file));
 
         // Declaring the feature names in schema
-//        Schema schema = new Schema.Builder()
-//                /*
-//                 *
-//                 * ENTER YOUR CODE HERE
-//                 *
-//                 * */
-//        System.out.println("Initial Schema: " + schema);
+        Schema schema = new Schema.Builder()
+                .addColumnInteger("age")
+                .addColumnCategorical("sex", Arrays.asList("male", "female"))
+                .addColumnDouble("bmi")
+                .addColumnInteger("children")
+                .addColumnCategorical("smoker", Arrays.asList("yes", "no"))
+                .addColumnCategorical("region", Arrays.asList("southwest", "southeast", "northwest", "northeast"))
+                .addColumnDouble("charges")
+                .build();
+        System.out.println("Initial Schema: " + schema);
 
         // Building transform process schema
-//        TransformProcess transformProcess = new TransformProcess.Builder(schema)
-//                /*
-//                 *
-//                 * ENTER YOUR CODE HERE
-//                 *
-//                 * */
-//        System.out.println("Final Schema: " + transformProcess.getFinalSchema());
+        TransformProcess transformProcess = new TransformProcess.Builder(schema)
+                .categoricalToInteger("sex", "smoker")
+                .categoricalToOneHot("region")
+                .build();
+        System.out.println("Final Schema: " + transformProcess.getFinalSchema());
 
         //  Adding the original data to a list for later transform purpose
-//        List<List<Writable>> originalData = new ArrayList<>();
-//        while (recordReader.hasNext()) {
-//            List<Writable> data = recordReader.next();
-//            originalData.add(data);
-//        }
+        List<List<Writable>> originalData = new ArrayList<>();
+        while(CSVReader.hasNext()) {
+            originalData.add(CSVReader.next());
+        }
 
         // Transform data into final schema
-//        List<List<Writable>> transformedData = LocalTransformExecutor.execute(originalData, transformProcess);
+        List<List<Writable>> processedData = LocalTransformExecutor.execute(originalData, transformProcess);
 
         //  Preparing to split the dataset into training set and test set
-//        CollectionRecordReader collectionRecordReader = new CollectionRecordReader(transformedData);
-//        DataSetIterator iterator = new RecordReaderDataSetIterator(// ENTER YOUR CODE HERE);
+        CollectionRecordReader collectionRecordReader = new CollectionRecordReader(processedData);
+        DataSetIterator iterator = new RecordReaderDataSetIterator(collectionRecordReader, processedData.size(), 9, 9, true);
 
-//        DataSet dataSet = iterator.next();
-//        dataSet.shuffle();
+        DataSet dataSet = iterator.next();
+        dataSet.shuffle();
 
-//        SplitTestAndTrain testAndTrain = // ENTER YOUR CODE HERE
+        SplitTestAndTrain testAndTrain = dataSet.splitTestAndTrain(0.7);
 
-//        DataSet train = // ENTER YOUR CODE HERE
-//        DataSet test = // ENTER YOUR CODE HERE
+        DataSet train = testAndTrain.getTrain();
+        DataSet test = testAndTrain.getTest();
 
-//        INDArray features = train.getFeatures();
-//        System.out.println("\nFeature shape: " + features.shapeInfoToString() + "\n");
+        INDArray features = train.getFeatures();
+        System.out.println("\nFeature shape: " + features.shapeInfoToString() + "\n");
 
         //  Assigning dataset iterator for training purpose
-//        ViewIterator trainIter = new ViewIterator(train, batchSize);
-//        ViewIterator testIter = new ViewIterator(test, batchSize);
+        ViewIterator trainIter = new ViewIterator(train, batchSize);
+        ViewIterator testIter = new ViewIterator(test, batchSize);
 
 
         /*
@@ -136,22 +163,40 @@ public class MedicalCostPrediction {
          * */
 
         //  Configuring the structure of the model
-//        MultiLayerConfiguration conf = new NeuralNetConfiguration.Builder()
-//                /*
-//                 *
-//                 * ENTER YOUR CODE HERE
-//                 *
-//                 * */
-//
-//        MultiLayerNetwork model = new MultiLayerNetwork(conf);
-//        model.init();
+        MultiLayerConfiguration conf = new NeuralNetConfiguration.Builder()
+                .seed(seed)
+                .weightInit(WeightInit.XAVIER)
+                .updater(new Adam(lr))
+                .l2(reg)
+                .list()
+                .layer(new DenseLayer.Builder()
+                        .nIn(input)
+                        .nOut(hidden)
+                        .activation(Activation.RELU)
+                        .build())
+                .layer(new DenseLayer.Builder()
+                        .nOut(hidden)
+                        .activation(Activation.RELU)
+                        .build())
+                .layer(new DenseLayer.Builder()
+                        .nOut(hidden)
+                        .activation(Activation.RELU)
+                        .build())
+                .layer(new OutputLayer.Builder(LossFunctions.LossFunction.MSE)
+                        .nOut(output)
+                        .activation(Activation.IDENTITY)
+                        .build())
+                .build();
+
+        MultiLayerNetwork model = new MultiLayerNetwork(conf);
+        model.init();
 
         // Initialize UI server for visualization model performance
         log.info("****************************************** UI SERVER **********************************************");
         UIServer uiServer = UIServer.getInstance();
         StatsStorage statsStorage = new InMemoryStatsStorage();
         uiServer.attach(statsStorage);
-//        model.setListeners(new ScoreIterationListener(10), new StatsListener(statsStorage));
+        model.setListeners(new ScoreIterationListener(10), new StatsListener(statsStorage));
 
         // Model training - fit trainIter into model and evaluate model with testIter for each of nEpoch
         log.info("\n*************************************** TRAINING **********************************************\n");
@@ -159,15 +204,15 @@ public class MedicalCostPrediction {
         long timeX = System.currentTimeMillis();
         for (int i = 0; i < nEpoch; i++) {
             long time = System.currentTimeMillis();
-//            trainIter.reset();
+            trainIter.reset();
             log.info("Epoch " + i);
-//            model.fit(// ENTER YOUR CODE HERE);
+            model.fit(trainIter);
             time = System.currentTimeMillis() - time;
             log.info("************************** Done an epoch, TIME TAKEN: " + time + "ms **************************");
 
             log.info("********************************** VALIDATING *************************************************");
-//            RegressionEvaluation evaluation = // ENTER YOUR CODE HERE
-//            System.out.println(evaluation.stats());
+            RegressionEvaluation evaluation = model.evaluateRegression(testIter);
+            System.out.println(evaluation.stats());
         }
         long timeY = System.currentTimeMillis();
         log.info("\n******************** TOTAL TIME TAKEN: " + (timeY - timeX) + "ms ******************************\n");
@@ -175,27 +220,27 @@ public class MedicalCostPrediction {
         // Print out target values and predicted values
         log.info("\n*************************************** PREDICTION **********************************************");
 
-//        testIter.reset();
+        testIter.reset();
 
-//        INDArray targetLabels = test.getLabels();
-//        System.out.println("\nTarget shape: " + targetLabels.shapeInfoToString());
+        INDArray targetLabels = test.getLabels();
+        System.out.println("\nTarget shape: " + targetLabels.shapeInfoToString());
 
-//        INDArray predictions = model.output(testIter);
-//        System.out.println("\nPredictions shape: " + predictions.shapeInfoToString() + "\n");
+        INDArray predictions = model.output(testIter);
+        System.out.println("\nPredictions shape: " + predictions.shapeInfoToString() + "\n");
 
         System.out.println("Target \t\t\t Predicted");
 
 
-//        for (int i = 0; i < targetLabels.rows(); i++) {
-//            System.out.println(targetLabels.getRow(i) + "\t\t" + predictions.getRow(i));
-//        }
+        for (int i = 0; i < targetLabels.rows(); i++) {
+            System.out.println(targetLabels.getRow(i) + "\t\t" + predictions.getRow(i));
+        }
 
         // Plot the target values and predicted values
-//        PlotUtil.visualizeRegression(targetLabels, predictions);
+        PlotUtil.visualizeRegression(targetLabels, predictions);
 
         // Print out model summary
         log.info("\n************************************* MODEL SUMMARY *******************************************");
-//        System.out.println(model.summary());
+        System.out.println(model.summary());
 
     }
 }

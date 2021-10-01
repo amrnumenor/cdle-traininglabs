@@ -17,7 +17,14 @@
 
 package ai.certifai.training.image_processing;
 
+import org.bytedeco.opencv.opencv_core.Mat;
+import org.nd4j.common.io.ClassPathResource;
+
 import java.io.IOException;
+
+import static org.bytedeco.opencv.global.opencv_core.BORDER_DEFAULT;
+import static org.bytedeco.opencv.global.opencv_imgcodecs.imread;
+import static org.bytedeco.opencv.global.opencv_imgproc.Laplacian;
 
 /*
  * TASKS:
@@ -29,13 +36,13 @@ import java.io.IOException;
  * */
 
 public class LaplacianFilter {
-    public static void main () throws IOException {
+    public static void main(String[] args) throws IOException {
+        Mat src = imread(new ClassPathResource("image_processing/lena.png").getFile().getAbsolutePath());
+        Display.display(src, "Original Image");
 
-        /*
-        *
-        * ENTER YOUR CODE HERE
-        *
-        * */
-
+        System.out.println("Depth: " + src.depth());
+        Mat output = new Mat();
+        Laplacian(src, output, src.depth(), 3, 3, 0, BORDER_DEFAULT);
+        Display.display(output, "Filtered Image");
     }
 }

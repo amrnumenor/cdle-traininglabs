@@ -20,6 +20,7 @@ package ai.certifai.training.nd4j;
 import org.nd4j.linalg.api.ndarray.INDArray;
 import org.nd4j.linalg.factory.Nd4j;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 
 public class Ex3_SortReshapeAndConcatenation {
@@ -103,6 +104,32 @@ public class Ex3_SortReshapeAndConcatenation {
         - Concatenate array2 to array1 (use reshape, flatten, or transpose if needed)
         - Sort(descending) the concatenated array in dimension 1
         */
+        System.out.println(BLACK_BOLD +"\nCreate arr1 with shape(2,3) initialize with random value" + ANSI_RESET);
+        INDArray arr1 = Nd4j.rand(2, 3);
+        System.out.println(arr1);
+
+        System.out.println(BLACK_BOLD +"\nCreate arr2 with shape(5,2) initialize with random value" + ANSI_RESET);
+        INDArray arr2 = Nd4j.rand(5, 2);
+        System.out.println(arr2);
+
+        System.out.println(BLACK_BOLD +"\nConcatenate array2 to array1 (flatten)" + ANSI_RESET);
+
+        // Flatten
+        INDArray arrFT = Nd4j.concat(0, Nd4j.toFlattened(arr1), Nd4j.toFlattened(arr2));
+        System.out.println(arrFT);
+
+        // Transpose
+        System.out.println(BLACK_BOLD +"\nConcatenate array2 to array1 (transpose)" + ANSI_RESET);
+        INDArray arrCT = Nd4j.hstack(arr1, arr2.transpose());
+        System.out.println(arrCT);
+
+        System.out.println(BLACK_BOLD +"\nSort(descending) the concatenated array in dimension 1" + ANSI_RESET);
+
+//        INDArray arrSortedA = Nd4j.sort(arrFT, 1, false);
+        INDArray arrSortedB = Nd4j.sort(arrCT, 1, false);
+//        System.out.println(arrSortedA);
+        System.out.println();
+        System.out.println(arrSortedB);
 
     }
 }

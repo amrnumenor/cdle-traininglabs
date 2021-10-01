@@ -26,9 +26,11 @@ import org.datavec.api.transform.schema.Schema;
 import org.datavec.api.writable.Writable;
 import org.datavec.local.transforms.LocalTransformExecutor;
 import org.deeplearning4j.datasets.datavec.RecordReaderDataSetIterator;
+import org.nd4j.linalg.api.ndarray.INDArray;
 import org.nd4j.linalg.dataset.DataSet;
 import org.nd4j.linalg.dataset.api.iterator.DataSetIterator;
 import org.nd4j.common.io.ClassPathResource;
+import org.nd4j.linalg.dataset.api.iterator.KFoldIterator;
 
 import java.io.File;
 import java.io.IOException;
@@ -54,9 +56,22 @@ public class SimpleKFoldDemo {
         DataSet dataSet = getDataSet();
 
         //create a kFoldIterator object. (set k=5)
-
+        KFoldIterator kFoldIterator = new KFoldIterator(5, dataSet);
 
         //loop through the kFoldIterator and print out the observations for each training set and test set.
+        int i = 1;
+        System.out.println("-------------------------------------------------------------");
+        while(kFoldIterator.hasNext()) {
+            System.out.println(BLACK_BOLD + "BATCH: " + i + ANSI_RESET);
+            INDArray trainFoldFeatures = kFoldIterator.next().getFeatures();
+            INDArray testFoldFeatures = kFoldIterator.testFold().getFeatures();
+            System.out.println(BLUE_BOLD + "TRAINING FOLD: \n" + ANSI_RESET);
+            System.out.println(trainFoldFeatures);
+            System.out.println(BLUE_BOLD + "TEST FOLD: \n" + ANSI_RESET);
+            System.out.println(testFoldFeatures);
+            i++;
+            System.out.println("-------------------------------------------------------------");
+        }
 
     }
 

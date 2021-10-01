@@ -17,7 +17,15 @@
 
 package ai.certifai.training.image_processing;
 
+import org.bytedeco.opencv.opencv_core.Mat;
+import org.bytedeco.opencv.opencv_core.Size;
+import org.nd4j.common.io.ClassPathResource;
+
 import java.io.IOException;
+
+import static org.bytedeco.opencv.global.opencv_imgcodecs.IMREAD_GRAYSCALE;
+import static org.bytedeco.opencv.global.opencv_imgcodecs.imread;
+import static org.bytedeco.opencv.global.opencv_imgproc.*;
 
 /*
  *
@@ -48,12 +56,49 @@ import java.io.IOException;
 public class LoadImages {
     public static void main(String[] args) throws IOException {
 
-        /*
-        *
-        * ENTER YOUR CODE HERE
-        *
-        * */
+        // get file path
+        String path = new ClassPathResource("image_processing/sat_map3.jpg").getFile().getAbsolutePath();
+        Mat inputImage = imread(path);
 
+        // read graysclas
+        Mat inputImageGS = imread(path, IMREAD_GRAYSCALE);
 
+        // display image
+        Display.display(inputImage, "Input Image");
+
+        // image attributes
+        System.out.println("Original Image");
+        System.out.println("Width: " + inputImage.arrayWidth());
+        System.out.println("Height: " + inputImage.arrayHeight());
+        System.out.println("Channels: " + inputImage.arrayChannels());
+
+        Mat downsized = new Mat();
+        resize(inputImage, downsized, new Size(240, 240));
+
+        // Display.display(downsized, "Downsized Image");
+
+        System.out.println("\nDownsized Image");
+        System.out.println("Width: " + downsized.arrayWidth());
+        System.out.println("Height: " + downsized.arrayHeight());
+        System.out.println("Channels: " + downsized.arrayChannels());
+
+        Mat upsized_nn = new Mat();
+        resize(downsized, upsized_nn, new Size(768, 506), 0, 0, INTER_NEAREST);
+
+        Display.display(upsized_nn, "Upsized Image (NN)");
+
+        System.out.println("\nUpsized Image");
+        System.out.println("Width: " + upsized_nn.arrayWidth());
+        System.out.println("Height: " + upsized_nn.arrayHeight());
+        System.out.println("Channels: " + upsized_nn.arrayChannels());
+
+        Mat upsized_ln = new Mat();
+        Mat upsized_cn = new Mat();
+
+        resize(downsized, upsized_ln, new Size(768, 506), 0, 0, INTER_LINEAR);
+        resize(downsized, upsized_cn, new Size(768, 506), 0, 0, INTER_CUBIC);
+
+        Display.display(upsized_ln, "Upsized Image (LINEAR)");
+        Display.display(upsized_cn, "Upsized Image (CUBIC)");
     }
 }

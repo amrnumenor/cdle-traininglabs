@@ -19,7 +19,10 @@ package ai.certifai.training.feedforward.detectgender;
 
 
 import org.datavec.api.split.FileSplit;
+import org.deeplearning4j.core.storage.StatsStorage;
 import org.deeplearning4j.datasets.datavec.RecordReaderDataSetIterator;
+import org.deeplearning4j.ui.api.UIServer;
+import org.deeplearning4j.ui.model.storage.InMemoryStatsStorage;
 import org.nd4j.evaluation.classification.Evaluation;
 import org.deeplearning4j.nn.api.OptimizationAlgorithm;
 import org.deeplearning4j.nn.conf.BackpropType;
@@ -86,7 +89,7 @@ public class PredictGenderTrain
 
         numInputs = rrTrain.getNameMaxLength() * 5;  // multiplied by 5 as for each letter we use five binary digits like 00000
         numOutputs = 2; //number of output labels
-        //numHiddenNodes = 2 * numInputs + numOutputs;
+//        numHiddenNodes = 2 * numInputs + numOutputs;
 
         //numInputs value is the label position
         DataSetIterator trainIter = new RecordReaderDataSetIterator(rrTrain, batchSize, numInputs, 2);
@@ -127,11 +130,9 @@ public class PredictGenderTrain
         model.init();
 
         //Set UIServer
-        /*
         UIServer uiServer = UIServer.getInstance();
         StatsStorage statsStorage = new InMemoryStatsStorage();
         uiServer.attach(statsStorage);
-        */
 
 
         model.setListeners(new ScoreIterationListener(50));//new StatsListener(statsStorage));

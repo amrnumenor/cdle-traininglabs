@@ -17,7 +17,15 @@
 
 package ai.certifai.training.image_processing;
 
+import org.bytedeco.opencv.opencv_core.Mat;
+import org.nd4j.common.io.ClassPathResource;
+
 import java.io.IOException;
+
+import static org.bytedeco.opencv.global.opencv_core.BORDER_DEFAULT;
+import static org.bytedeco.opencv.global.opencv_core.add;
+import static org.bytedeco.opencv.global.opencv_imgcodecs.imread;
+import static org.bytedeco.opencv.global.opencv_imgproc.Sobel;
 
 /*
  * TASKS:
@@ -35,12 +43,20 @@ import java.io.IOException;
 
 public class SobelOperator {
     public static void main(String[] args) throws IOException {
+        String path = new ClassPathResource("image_processing/x-ray.jpeg").getFile().getAbsolutePath();
+        Mat src = imread(path);
+        Display.display(src, "Original Image");
 
-        /*
-         *
-         * ENTER YOUR CODE HERE
-         *
-         * */
+        Mat vertical = new Mat();
+        Sobel(src, vertical, 0, 1, 0, 3, 1, 0, BORDER_DEFAULT);
+        Display.display(vertical, "Sobel Vertical");
 
+        Mat horizontal = new Mat();
+        Sobel(src, horizontal, 0, 0, 1, 3, 1, 0, BORDER_DEFAULT);
+        Display.display(horizontal, "Sobel Horizontal");
+
+        Mat output = new Mat();
+        add(vertical, horizontal, output);
+        Display.display(output, "Final Output");
     }
 }

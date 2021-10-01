@@ -18,11 +18,19 @@
 package ai.certifai.training.datavec.loadcsv;
 
 import org.datavec.api.records.reader.RecordReader;
+import org.datavec.api.records.reader.impl.collection.CollectionRecordReader;
 import org.datavec.api.records.reader.impl.csv.CSVRecordReader;
+import org.datavec.api.records.reader.impl.transform.TransformProcessRecordReader;
 import org.datavec.api.split.FileSplit;
+import org.datavec.api.transform.MathFunction;
+import org.datavec.api.transform.MathOp;
 import org.datavec.api.transform.TransformProcess;
+import org.datavec.api.transform.condition.column.InvalidValueColumnCondition;
+import org.datavec.api.transform.filter.ConditionFilter;
 import org.datavec.api.transform.schema.Schema;
 import org.datavec.api.writable.Writable;
+import org.datavec.local.transforms.LocalTransformExecutor;
+import org.deeplearning4j.datasets.datavec.RecordReaderDataSetIterator;
 import org.deeplearning4j.nn.conf.MultiLayerConfiguration;
 import org.deeplearning4j.nn.conf.NeuralNetConfiguration;
 import org.deeplearning4j.nn.conf.layers.DenseLayer;
@@ -60,24 +68,35 @@ public class LoadCSVHousePrice {
         //  Step 1 :    Input the file and load into record reader
         //  Always take a look at the data and the its description (if available) before starting
         //  In this case, the data and its description are stored in the resource/datavec/houseprice
-        File inputFile = new ClassPathResource("datavec/houseprice/housePrice.csv").getFile();
+        File inputFile = new ClassPathResource("datavec/houseprice").getFile();
         RecordReader CSVreader = new CSVRecordReader(NUMLINESTOSKIP);
         CSVreader.initialize(new FileSplit(inputFile));
 
         //  Step 2  :   Build up the schema of the data set by referring with the csv file
         Schema schema = new Schema.Builder()
-                /*
-                 *
-                 *   ENTER YOUR CODE HERE WHILE REFERRING TO THE CSV FILE AND DATA DESCRIPTION FILE
-                 *
-                 */
+                .addColumnInteger("Id")
+                .addColumnCategorical("MSZoning", Arrays.asList("A", "C", "FV", "I", "RH", "RL", "RP", "RM"))
+                .addColumnsInteger(
+                        "LotFrontage",
+                        "OverallQual",
+                        "MasVnrArea",
+                        "TotalBsmtSF",
+                        "1stFlrSF",
+                        "2ndFlrSF",
+                        "GrLivArea",
+                        "Fireplaces")
+                .addColumnCategorical("GarageType", Arrays.asList("2Types", "Attchd", "Basment", "BuiltIn", "CarPort", "Detchd", "NA"))
+                .addColumnsInteger("GarageCars", "GarageArea", "OpenPorchSF")
+                .addColumnCategorical("PoolQC", Arrays.asList("Ex", "Gd", "TA", "Fa", "NA"))
+                .addColumnCategorical("SaleCondition", Arrays.asList("Normal", "Abnorml", "AdjLand", "Alloca", "Family", "Partial"))
+                .addColumnDouble("SalePrice")
                 .build();
 
         System.out.println("*****************************   Before Transform Process    *****************************");
         System.out.println(schema);
-
-        //  Step 3  Using the transform process for preprocessing the dataset
         TransformProcess transformProcess = new TransformProcess.Builder(schema)
+        //  Step 3  Using the transform process for preprocessing the dataset
+
                 /*
                  *
                  *  ENTER YOUR CODE HERE
@@ -90,6 +109,17 @@ public class LoadCSVHousePrice {
                  * 6.   One Hot Encode the categorical features so that the machine could understand categorical features
                  *
                  */
+                .removeColumns("Id")
+                .doubleMathOp("SalePrice", MathOp.Add, 1)
+                .doubleMathFunction("SalePrice", MathFunction.LOG)
+                .stringMapTransform("MSZoning", Collections.singletonMap("C (all)", "C"))
+                .stringToCategorical("MSZoning", Arrays.asList("A", "C", "FV", "I", "RH", "RL", "RP", "RM"))
+                .filter(new ConditionFilter(new InvalidValueColumnCondition("LotFrontage")))
+                .filter(new ConditionFilter(new InvalidValueColumnCondition("MasVnrArea")))
+                .categoricalToOneHot("MSZoning")
+                .categoricalToOneHot("GarageType")
+                .categoricalToOneHot("PoolQC")
+                .categoricalToOneHot("SaleCondition")
                 .build();
 
         Schema finalSchema = transformProcess.getFinalSchema();
@@ -100,21 +130,21 @@ public class LoadCSVHousePrice {
         //  Method 1 :  Using LocalTransformExecutor
         List<List<Writable>> originalData = new ArrayList<>();
         while (CSVreader.hasNext()) {
-            //  ENTER YOUR CODE HERE
+            originalData.add(CSVreader.next());
         }
+        List<List<Writable>> processedData = LocalTransformExecutor.execute(originalData, transformProcess);
 
-//        //  Fill in the required arguments for the following code
-//          LocalTransformExecutor.execute()
-//          RecordReader collectionRecordReader = new CollectionRecordReader();
-//          DataSetIterator dataSetIterator = new RecordReaderDataSetIterator();
+        //  Fill in the required arguments for the following code
+        RecordReader collectionRecordReader = new CollectionRecordReader(processedData);
+        DataSetIterator dataSetIterator = new RecordReaderDataSetIterator(collectionRecordReader, processedData.size(), 37, 37, true);
 //
-//           //  Method 2 :  Using TransformProcessRecordReader
-//        //  Fill in the required arguments for the following code
-//        TransformProcessRecordReader transformReader = new TransformProcessRecordReader();
-//        DataSetIterator dataSetIterator = new RecordReaderDataSetIterator();
+        //  Method 2 :  Using TransformProcessRecordReader
+        //  Fill in the required arguments for the following code
+//        TransformProcessRecordReader transformReader = new TransformProcessRecordReader(CSVreader);
+//        DataSetIterator dataSetIterator = new RecordReaderDataSetIterator(transformReader, 2000, 37, 37, true);
 //
 //        //  OPTIONAL - Uncomment the method below to start training
-//        modelTraining(dataSetIterator);
+        modelTraining(dataSetIterator);
     }
 
     public static void modelTraining(DataSetIterator dataSetIterator) {

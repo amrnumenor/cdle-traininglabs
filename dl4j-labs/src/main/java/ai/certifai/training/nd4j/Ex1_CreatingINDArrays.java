@@ -115,14 +115,41 @@ public class Ex1_CreatingINDArrays {
         /*
         EXERCISE:
         - Create array with shape (3,2) initialize it with 0
+        */
+        INDArray myArr1 = Nd4j.zeros(3, 2);
+        System.out.println(BLACK_BOLD +"\nCreate array with shape (3,2) initialize it with 0" + ANSI_RESET);
+        System.out.println(BLUE_BOLD + "Nd4j.zeros(3, 2)" + ANSI_RESET);
+        System.out.println(myArr1);
+        /*
         - Create array with shape (5,5) initialize it with 5
+        */
+        INDArray myArr2 = Nd4j.valueArrayOf(5, 5, 5);
+        System.out.println(BLACK_BOLD +"\nCreate array with shape (5,5) initialize it with 5" + ANSI_RESET);
+        System.out.println(BLUE_BOLD + "Nd4j.valueArrayOf(5, 5, 5)" + ANSI_RESET);
+        System.out.println(myArr2);
+        /*
         - Create the following array
             | 0  0  0 |
             | 1  1  1 |
             | 2  2  2 |
+        */
+        INDArray myArr3 = Nd4j.create(new double[][]{{0, 0, 0}, {1, 1, 1}, {2, 2, 2}});
+        System.out.println(BLACK_BOLD +"\nCreate the following array" + ANSI_RESET);
+        System.out.println(BLUE_BOLD + "Nd4j.create(new double[][]{{0, 0, 0}, {1, 1, 1}, {2, 2, 2}})" + ANSI_RESET);
+        System.out.println(myArr3);
+        /*
         - Create array with shape (3,3,3) initialize it with gaussian random number
+        */
+        INDArray myArr4 = Nd4j.randn(new int[]{3, 3, 3});
+        System.out.println(BLACK_BOLD +"\nCreate array with shape (3,3,3) initialize it with gaussian random number" + ANSI_RESET);
+        System.out.println(BLUE_BOLD + "Nd4j.randn(new int[]{3, 3, 3})" + ANSI_RESET);
+        System.out.println(myArr4);
+        /*
         - Create a vector with range of 1 - 100 in 20 steps
         */
-
+        INDArray myArr5 = Nd4j.linspace(1, 100, 20);
+        System.out.println(BLACK_BOLD +"\nCreate a vector with range of 1 - 100 in 20 steps" + ANSI_RESET);
+        System.out.println(BLUE_BOLD + "Nd4j.linspace(1, 100, 20)" + ANSI_RESET);
+        System.out.println(myArr5);
     }
 }

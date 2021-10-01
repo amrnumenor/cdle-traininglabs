@@ -78,10 +78,9 @@ public class MnistImageSave
 
         // image information
         // 28 * 28 grayscale
-        // grayscale implies single channel
-
         int height = 28;
         int width = 28;
+        // grayscale implies single channel
         int channels = 1;
         int rngseed = 123;
 

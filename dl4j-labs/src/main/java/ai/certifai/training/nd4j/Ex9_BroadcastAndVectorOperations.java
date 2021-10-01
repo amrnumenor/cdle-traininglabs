@@ -53,6 +53,16 @@ public class Ex9_BroadcastAndVectorOperations {
         - Divide arr1 with row vector of [2,2,2]
         - Multiply arr1 with column vector of [1,2,3]
         */
+        System.out.println(BLACK_BOLD + "\nCreate arr1 with shape(3,3) initialize with random value" + ANSI_RESET);
+        INDArray arr1 = Nd4j.rand(3, 3);
+        System.out.println(arr1);
 
+        System.out.println(BLACK_BOLD + "\nDivide arr1 with row vector of [2,2,2]" + ANSI_RESET);
+        INDArray rVector = Nd4j.valueArrayOf(1, 3, 2);
+        System.out.println(arr1.divRowVector(rVector));
+
+        System.out.println(BLACK_BOLD + "\nMultiply arr1 with column vector of [1,2,3]" + ANSI_RESET);
+        INDArray cVector = Nd4j.create(new float[]{1, 2, 3}, new int[]{3, 1});
+        System.out.println(arr1.mulColumnVector(cVector));
     }
 }

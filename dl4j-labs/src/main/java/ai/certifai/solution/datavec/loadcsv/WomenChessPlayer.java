@@ -93,6 +93,7 @@ public class WomenChessPlayer {
          *          WFM: Woman FIDE Master
          *          WGM: Woman Grandmaster
          *          WIM: Woman International Master
+         *          WH: Woman Honorary Grand Master
          *  Standard_Rating: classical game rating of players
          *  Rapid_rating: rapid game rating of players
          *  Blitz_rating: blitz game rating of players
@@ -198,7 +199,7 @@ public class WomenChessPlayer {
 
         // Step 6: Model training
         // OPTIONAL: Uncomment to start model training
-        train(trainIter, testIter, test);
+//        train(trainIter, testIter, test);
 
         log.info("********************* END ****************************");
     }

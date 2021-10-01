@@ -94,6 +94,7 @@ public class WomenChessPlayer {
          *          WCM: Woman Candidate Master
          *          WFM: Woman FIDE Master
          *          WGM: Woman Grandmaster
+         *          WH: Woman Honorary Grand Master
          *          WIM: Woman International Master
          *  Standard_Rating: classical game rating of players
          *  Rapid_rating: rapid game rating of players
@@ -104,23 +105,25 @@ public class WomenChessPlayer {
 
         // Step 1: Read dataset using CSV Record Reader
         File file = new ClassPathResource("datavec/womenChessPlayer/top_women_chess_players_aug_2020.csv").getFile();
-        RecordReader recordReader = new CSVRecordReader(1, ',');
-        recordReader.initialize(new FileSplit(file));
+        RecordReader rr = new CSVRecordReader(1);
+        rr.initialize(new FileSplit(file));
 
         // Step 2: Build up schema for dataset
         Schema schema = new Schema.Builder()
-                /*
-                 *
-                 * ENTER TOUR CODE HERE
-                 *
-                 */
+                .addColumnInteger("id")
+                .addColumnsString("name", "federation")
+                .addColumnCategorical("gender", "F")
+                .addColumnInteger("year_of_birth")
+                .addColumnString("title")
+                .addColumnDouble("standard")
+                .addColumnsString("rapid", "blitz")
+                .addColumnString("status")
                 .build();
         System.out.println("Initial Schema: " + schema);
 
         // Step 3: Using transform process for data preprocessing
         TransformProcess transformProcess = new TransformProcess.Builder(schema)
                 /*
-                 *
                  * TASK:
                  * -----------
                  * 1. remove null values in "year_of_birth" column
@@ -139,31 +142,66 @@ public class WomenChessPlayer {
                  * 14. convert "state" column from categorical to numerical encoding
                  * 15. remove columns that didn't help in model performance
                  * ------------
-                 *
-                 *
-                 * ENTER YOUR CODE HERE
-                 *
                  */
+                .filter(new ConditionFilter(new InvalidValueColumnCondition("year_of_birth")))
+                .addConstantIntegerColumn("this_year", 2020)
+                .integerColumnsMathOp("age", MathOp.Subtract, "this_year", "year_of_birth")
+                .stringMapTransform("title", Collections.singletonMap("", "Other"))
+                .stringToCategorical("title", Arrays.asList("GM", "IM", "FM", "CM", "WCM", "WFM", "WGM", "WH", "WIM", "Other"))
+                .categoricalToOneHot("title")
+                .stringMapTransform("rapid", Collections.singletonMap("", "0"))
+                .stringMapTransform("blitz", Collections.singletonMap("", "0"))
+                .convertToDouble("rapid")
+                .convertToDouble("blitz")
+                .stringMapTransform("status", Collections.singletonMap("", "active"))
+                .stringMapTransform("status", Collections.singletonMap("wi", "inactive"))
+                .stringToCategorical("status", Arrays.asList("active", "inactive"))
+                .categoricalToInteger("status")
+                .removeColumns("id", "name", "federation", "gender", "year_of_birth", "this_year")
                 .build();
         System.out.println("Final Schema: " + transformProcess.getFinalSchema());
 
         // Step 4: Transform schema
         // Method 1: Using LocalTransformExecutor
+        List<List<Writable>> originalData = new ArrayList<>();
+        while(rr.hasNext())
+            originalData.add(rr.next());
+
+        List<List<Writable>> processedData = LocalTransformExecutor.execute(originalData, transformProcess);
+        CollectionRecordReader crr = new CollectionRecordReader(processedData);
+        DataSetIterator dataSetIterator = new RecordReaderDataSetIterator(crr, processedData.size(), label, output); // label: 13 (status), output: 2 (active, inactive)
 
         // Method 2: Using TransformProcessRecordReader
+//        TransformProcessRecordReader transformReader = new TransformProcessRecordReader(rr, transformProcess);
+//        DataSetIterator dataSetIterator = new RecordReaderDataSetIterator.Builder(transformReader, Integer.MAX_VALUE)
+//                .classification(label, output)
+//                .build();
 
         // Step 5: Data preparation
+        DataSet allData = dataSetIterator.next();
+
         // Shuffle dataset
+        allData.shuffle();
 
         // Split dataset into training set and test set
+        SplitTestAndTrain testAndTrain = allData.splitTestAndTrain(0.8);
 
         // Assigning dataset iterator for training purpose
+        DataSet trainData = testAndTrain.getTrain();
+        DataSet testData = testAndTrain.getTest();
+
+        DataSetIterator trainIterator = new ViewIterator(trainData, batchSize);
+        DataSetIterator testIterator = new ViewIterator(testData, batchSize);
 
         // Data normalization
+        DataNormalization scaler = new NormalizerMinMaxScaler();
+        scaler.fit(trainIterator);
+        trainIterator.setPreProcessor(scaler);
+        testIterator.setPreProcessor(scaler);
 
         // Step 6: Model training
         // OPTIONAL: Uncomment below to start model training
-        // train(trainIter, testIter, test);
+         train(trainIterator, testIterator, testData);
 
         log.info("********************* END ****************************");
     }

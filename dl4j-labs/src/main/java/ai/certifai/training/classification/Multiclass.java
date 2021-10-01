@@ -27,13 +27,27 @@ import org.datavec.api.writable.Writable;
 import org.datavec.local.transforms.LocalTransformExecutor;
 import org.deeplearning4j.core.storage.StatsStorage;
 import org.deeplearning4j.datasets.datavec.RecordReaderDataSetIterator;
+import org.deeplearning4j.nn.conf.MultiLayerConfiguration;
+import org.deeplearning4j.nn.conf.NeuralNetConfiguration;
+import org.deeplearning4j.nn.conf.dropout.Dropout;
+import org.deeplearning4j.nn.conf.layers.DenseLayer;
+import org.deeplearning4j.nn.conf.layers.DropoutLayer;
+import org.deeplearning4j.nn.conf.layers.OutputLayer;
+import org.deeplearning4j.nn.multilayer.MultiLayerNetwork;
+import org.deeplearning4j.nn.weights.WeightInit;
 import org.deeplearning4j.ui.api.UIServer;
+import org.deeplearning4j.ui.model.stats.StatsListener;
 import org.deeplearning4j.ui.model.storage.InMemoryStatsStorage;
 import org.nd4j.evaluation.classification.Evaluation;
+import org.nd4j.linalg.activations.Activation;
+import org.nd4j.linalg.activations.IActivation;
 import org.nd4j.linalg.dataset.api.iterator.DataSetIterator;
 import org.nd4j.linalg.dataset.api.preprocessor.DataNormalization;
 import org.nd4j.linalg.dataset.api.preprocessor.NormalizerStandardize;
 import org.nd4j.common.io.ClassPathResource;
+import org.nd4j.linalg.learning.config.Adam;
+import org.nd4j.linalg.learning.config.Nesterovs;
+import org.nd4j.linalg.lossfunctions.LossFunctions;
 
 import java.io.File;
 import java.io.IOException;
@@ -88,7 +102,9 @@ public class Multiclass {
         DataSetIterator testData = makeIterator(transformedTestData);
 
         DataNormalization normalizer = new NormalizerStandardize();
-
+        normalizer.fit(trainData);
+        trainData.setPreProcessor(normalizer);
+        testData.setPreProcessor(normalizer);
 
         // #### Apply normalization here ####
 
@@ -96,26 +112,46 @@ public class Multiclass {
         //            Step 2: Define Model
         //=====================================================================
 
-//        MultiLayerConfiguration conf = new NeuralNetConfiguration.Builder()
-//                .seed(1234)
-//
-//              #### Complete the neural network configuration here ####
-//
-//                .build();
+        MultiLayerConfiguration conf = new NeuralNetConfiguration.Builder()
+                .seed(1234)
+                .weightInit(WeightInit.XAVIER)
+                .updater(new Nesterovs(0.001, Nesterovs.DEFAULT_NESTEROV_MOMENTUM))
+//                .updater(new Adam(Adam.DEFAULT_ADAM_LEARNING_RATE))
+                .list()
+                .layer(0, new DenseLayer.Builder()
+                        .nIn(6)
+                        .nOut(32)
+                        .activation(Activation.RELU)
+//                        .dropOut(0.3)
+                        .build())
+                .layer(1, new DropoutLayer(0.3))
+                .layer(2, new DenseLayer.Builder()
+                        .nIn(32)
+                        .nOut(64)
+                        .activation(Activation.RELU)
+                        .build())
+                .layer(3, new OutputLayer.Builder()
+                        .nIn(64)
+                        .nOut(7)
+                        .lossFunction(LossFunctions.LossFunction.MCXENT) // Multiple Class entropy
+                        .activation(Activation.SOFTMAX)
+                        .build())
+                .build();
 
 
         // #### Initialize model here ####
-
+        MultiLayerNetwork model = new MultiLayerNetwork(conf);
+        model.init();
         //=====================================================================
         //            Step 3: Set Listener
         //=====================================================================
 
         StatsStorage storage = new InMemoryStatsStorage();
         UIServer server = UIServer.getInstance();
-        // server.attach(); // attach the storage to server
+        server.attach(storage); // attach the storage to server
 
         // Set model listeners
-//        model.setListeners(); // Setup the StatsListener by setting the listener frequency to 10
+        model.setListeners(new StatsListener(storage, 10)); // Setup the StatsListener by setting the listener frequency to 10
 
         //=====================================================================
         //            Step 4: Train model
@@ -124,14 +160,20 @@ public class Multiclass {
         Evaluation eval;
         for(int i=0; i < epoch; i++) {
             // Perform training and print accuracy score for every epoch
-
+            model.fit(trainData);
+            eval = model.evaluate(testData);
+            System.out.println("EPOCH: " + i + " Accuracy: " + eval.accuracy());
+            testData.reset();
+            trainData.reset();
         }
 
         System.out.println("=== Train data evaluation ===");
-// #### Evaluate model on TRAIN set here ####
+        eval = model.evaluate(trainData);
+        System.out.println(eval.stats());
 
         System.out.println("=== Test data evaluation ===");
-// #### Evaluate model on TEST set here ####
+        eval = model.evaluate(testData);
+        System.out.println(eval.stats());
 
     }
 
